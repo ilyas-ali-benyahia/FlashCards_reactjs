@@ -8,10 +8,10 @@ import {
   SimpleGrid,
   Flex,
   IconButton,
-  useToast
+  useToast,
+  Button
 } from "@chakra-ui/react";
 import { FaRedo, FaCheck, FaTimes } from "react-icons/fa";
-import "./index.css";
 
 const flashcards = [
   {
@@ -64,15 +64,16 @@ export default function App() {
 }
 
 function FlashCards() {
-  const [selectedId, setSelectedId] = useState(null);
+  const [flippedCards, setFlippedCards] = useState([]);
   const [answeredCards, setAnsweredCards] = useState([]);
   const toast = useToast();
-  const bgColor = useColorModeValue("gray.50", "gray.800");
-  const cardBg = useColorModeValue("white", "gray.700");
-  const hoverBg = useColorModeValue("teal.50", "teal.900");
 
-  const handleClick = (id) => {
-    setSelectedId(id !== selectedId ? id : null);
+  const handleFlip = (id) => {
+    setFlippedCards(prev => 
+      prev.includes(id) 
+        ? prev.filter(cardId => cardId !== id) 
+        : [...prev, id]
+    );
   };
 
   const handleAnswer = (id, isCorrect) => {
@@ -86,20 +87,22 @@ function FlashCards() {
   };
 
   const resetCards = () => {
+    setFlippedCards([]);
     setAnsweredCards([]);
-    setSelectedId(null);
   };
 
   return (
     <Box>
       <Flex justify="flex-end" mb={4}>
-        <IconButton
-          icon={<FaRedo />}
+        <Button 
+          leftIcon={<FaRedo />} 
           onClick={resetCards}
-          aria-label="Reset cards"
           colorScheme="teal"
           variant="outline"
-        />
+          size="sm"
+        >
+          Reset All
+        </Button>
       </Flex>
 
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
@@ -107,12 +110,10 @@ function FlashCards() {
           <FlashCard
             key={card.id}
             card={card}
-            isSelected={selectedId === card.id}
+            isFlipped={flippedCards.includes(card.id)}
             isAnswered={answeredCards.includes(card.id)}
-            onClick={handleClick}
+            onFlip={() => handleFlip(card.id)}
             onAnswer={handleAnswer}
-            bgColor={cardBg}
-            hoverBg={hoverBg}
           />
         ))}
       </SimpleGrid>
@@ -120,93 +121,147 @@ function FlashCards() {
   );
 }
 
-const FlashCard = ({ card, isSelected, isAnswered, onClick, onAnswer, bgColor, hoverBg }) => {
+const FlashCard = ({ card, isFlipped, isAnswered, onFlip, onAnswer }) => {
   const { id, question, answer, category } = card;
-  const questionColor = useColorModeValue("teal.600", "teal.200");
-  const answerColor = useColorModeValue("gray.800", "white");
-  const categoryColor = useColorModeValue("teal.100", "teal.800");
+  const questionBgColor = useColorModeValue('blue.50', 'blue.700');
+  const answerBgColor = useColorModeValue('green.50', 'green.700');
+  const textColor = useColorModeValue('gray.800', 'white');
+  const borderColor = useColorModeValue('gray.200', 'gray.600');
 
   return (
     <Box
-      borderRadius="lg"
-      boxShadow="md"
-      p={6}
-      minH="200px"
+      minHeight="300px"
       display="flex"
-      flexDirection="column"
-      cursor="pointer"
-      transition="all 0.2s"
-      bg={bgColor}
-      _hover={{
-        bg: hoverBg,
-        transform: "translateY(-2px)",
-        boxShadow: "lg"
-      }}
-      onClick={() => onClick(id)}
-      position="relative"
-      borderWidth={isAnswered ? "2px" : "1px"}
-      borderColor={isAnswered ? "green.300" : "transparent"}
+      alignItems="center"
+      justifyContent="center"
+      my={4}
+      p={4}
     >
-      <Badge
-        position="absolute"
-        top={2}
-        right={2}
-        colorScheme="teal"
-        bg={categoryColor}
-      >
-        {category}
-      </Badge>
-
       <Box
-        flex="1"
+        borderRadius="lg"
+        boxShadow="xl"
+        p={6}
+        width="100%"
+        height="300px"
         display="flex"
         alignItems="center"
         justifyContent="center"
-        textAlign="center"
+        position="relative"
+        cursor="pointer"
+        onClick={onFlip}
+        style={{
+          perspective: '1000px',
+        }}
+        borderWidth="1px"
+        borderColor={isAnswered ? "green.300" : borderColor}
       >
-        <Text
-          fontSize="xl"
+        <Box
+          position="absolute"
+          width="100%"
+          height="100%"
+          borderRadius="lg"
+          boxShadow="lg"
+          p={6}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
           fontWeight="medium"
-          color={isSelected ? answerColor : questionColor}
+          style={{
+            transformStyle: 'preserve-3d',
+            transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+          }}
         >
-          {isSelected ? answer : question}
-        </Text>
+          {/* Question side */}
+          <Box
+            position="absolute"
+            width="100%"
+            height="100%"
+            borderRadius="lg"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            bg={questionBgColor}
+            color={textColor}
+            p={6}
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            <Badge 
+              position="absolute" 
+              top={2} 
+              right={2} 
+              colorScheme="blue"
+            >
+              {category}
+            </Badge>
+            <Heading size="md" mb={4}>Question</Heading>
+            <Text fontSize="lg" textAlign="center">{question}</Text>
+            <Badge 
+              position="absolute" 
+              bottom={4} 
+              right={4} 
+              colorScheme="blue"
+            >
+              Click to flip
+            </Badge>
+          </Box>
+          
+          {/* Answer side */}
+          <Box
+            position="absolute"
+            width="100%"
+            height="100%"
+            borderRadius="lg"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            bg={answerBgColor}
+            color={textColor}
+            p={6}
+            style={{ 
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)'
+            }}
+          >
+            <Heading size="md" mb={4}>Answer</Heading>
+            <Text fontSize="lg" textAlign="center">{answer}</Text>
+            
+            <Flex justify="center" mt={4} gap={2}>
+              <IconButton
+                icon={<FaCheck />}
+                aria-label="Mark correct"
+                colorScheme="green"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAnswer(id, true);
+                }}
+              />
+              <IconButton
+                icon={<FaTimes />}
+                aria-label="Mark incorrect"
+                colorScheme="red"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAnswer(id, false);
+                }}
+              />
+            </Flex>
+            
+            <Badge 
+              position="absolute" 
+              bottom={4} 
+              right={4} 
+              colorScheme="green"
+            >
+              Click to flip
+            </Badge>
+          </Box>
+        </Box>
       </Box>
-
-      {isSelected && (
-        <Flex justify="center" mt={4} gap={2}>
-          <IconButton
-            icon={<FaCheck />}
-            aria-label="Mark correct"
-            colorScheme="green"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAnswer(id, true);
-            }}
-          />
-          <IconButton
-            icon={<FaTimes />}
-            aria-label="Mark incorrect"
-            colorScheme="red"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAnswer(id, false);
-            }}
-          />
-        </Flex>
-      )}
-
-      <Badge
-        position="absolute"
-        bottom={2}
-        left={2}
-        colorScheme="gray"
-        fontSize="xs"
-      >
-        {isSelected ? "Answer" : "Question"}
-      </Badge>
     </Box>
   );
 };
